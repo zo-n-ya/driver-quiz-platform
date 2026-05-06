@@ -1,0 +1,18 @@
+# Environment
+.env
+*.env
+
+# Google credentials
+*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
