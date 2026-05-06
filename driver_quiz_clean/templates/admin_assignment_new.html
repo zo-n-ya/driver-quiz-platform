@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New POD Assignment</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+<main class="admin-shell">
+  <section class="admin-card">
+    <a class="admin-link" href="/admin/dashboard">← Back to dashboard</a>
+    <h1>New POD Test Assignment</h1>
+    <p class="muted">Create one task or batch create many tasks.</p>
+    {% if error %}<div class="admin-error">{{ error }}</div>{% endif %}
+    <form method="post" class="assignment-form">
+      <label>Creator name<input class="input" name="created_by" required placeholder="Creator name"></label>
+      <label>Driver IDs<textarea class="input textarea" name="driver_ids" required placeholder="One driver ID per line, or paste comma separated IDs"></textarea></label>
+      <div class="muted small-note">Batch create: paste multiple driver IDs. Duplicate IDs in this box are ignored.</div>
+      <label>Warehouse<select class="input" name="warehouse" required>{% for w in warehouses %}<option value="{{w}}">{{w}}</option>{% endfor %}</select></label>
+      <label>Team ID<select class="input" name="team_id" required>{% for t in teams %}<option value="{{t}}">{{t}}</option>{% endfor %}</select></label>
+      <label>Category<select class="input" name="category_code" required>{% for code,names in labels.items() %}<option value="{{code}}">{{names.en}}</option>{% endfor %}</select></label>
+      <label>Note<textarea class="input textarea small" name="note" placeholder="Optional note for OA"></textarea></label>
+      <button class="primary" type="submit">Create Assignment(s)</button>
+    </form>
+  </section>
+</main>
+</body>
+</html>

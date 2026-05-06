@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Question Bank</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+<main class="admin-shell wide qbank-shell qbank-v26-shell">
+  <header class="admin-header">
+    <div>
+      <h1>Question Bank</h1>
+      <p class="muted">Manage POD test questions by category and quiz set.</p>
+    </div>
+    <div class="admin-actions">
+      <a class="admin-btn" href="{{ url_for('admin_question_new', category=filters.category, quiz_set=filters.quiz_set) }}">+ New Draft Question</a>
+      <a class="admin-btn ghost" href="/admin/dashboard">Operations Dashboard</a>
+      <a class="admin-btn ghost" href="{{ url_for('question_bank_logout') }}">Logout Question Bank</a>
+    </div>
+  </header>
+
+  <section class="qbank-layout">
+    <aside class="qbank-sidebar admin-card">
+      <h2>Categories</h2>
+      <div class="qbank-side-list">
+        {% for c in category_rows %}
+          <a class="side-item {% if filters.category==c.category_code %}active{% endif %}" href="{{ url_for('admin_questions', category=c.category_code) }}">
+            <span>{{ labels.get(c.category_code,{}).get('en',c.category_code) }}</span>
+            <small>{{ c.total }} questions · {{ c.set_count }} sets</small>
+          </a>
+        {% endfor %}
+      </div>
+
+      <h2 class="side-heading">Quiz Sets</h2>
+      <div class="qbank-side-list">
+        {% for s in set_rows %}
+          <a class="side-item set-item {% if filters.quiz_set|string==s.quiz_set|string %}active{% endif %}" href="{{ url_for('admin_questions', category=filters.category, quiz_set=s.quiz_set) }}">
+            <span>Quiz {{ s.quiz_set }}</span>
+            <small>{{ s.total }} questions · {{ s.published_count }} published · {{ s.draft_count }} draft</small>
+          </a>
+        {% endfor %}
+      </div>
+    </aside>
+
+    <section class="qbank-main">
+      <section class="admin-card qbank-toolbar">
+        <div>
+          <h2>{{ labels.get(filters.category,{}).get('en',filters.category or 'Category') }}{% if filters.quiz_set %} · Quiz {{ filters.quiz_set }}{% endif %}</h2>
+          <p class="muted">{{ rows|length }} question(s) in this view. Questions are randomized on the driver side, so order is hidden.</p>
+        </div>
+        <form class="qbank-inline-filters" method="get">
+          <input type="hidden" name="category" value="{{ filters.category }}">
+          <input type="hidden" name="quiz_set" value="{{ filters.quiz_set }}">
+          <select class="input" name="question_type">
+            <option value="">All types</option>
+            <option value="single" {% if filters.question_type=='single' %}selected{% endif %}>single</option>
+            <option value="multi" {% if filters.question_type=='multi' %}selected{% endif %}>multi</option>
+          </select>
+          <select class="input" name="status">
+            <option value="">All status</option>
+            <option value="draft" {% if filters.status=='draft' %}selected{% endif %}>draft</option>
+            <option value="published" {% if filters.status=='published' %}selected{% endif %}>published</option>
+            <option value="inactive" {% if filters.status=='inactive' %}selected{% endif %}>inactive</option>
+          </select>
+          <button class="admin-btn" type="submit">Filter</button>
+        </form>
+      </section>
+
+      <section class="admin-card publish-card compact-publish">
+        <form class="publish-row" method="post" action="{{ url_for('admin_questions_publish') }}" onsubmit="return confirm('Publish this entire quiz set? Draft questions in this set will become visible to drivers.');">
+          <input type="hidden" name="category_code" value="{{ filters.category }}">
+          <input type="hidden" name="quiz_set" value="{{ filters.quiz_set }}">
+          <div><b>Publish current quiz set</b><p class="muted">Draft questions stay hidden until this quiz set is published.</p></div>
+          <button class="admin-btn success" type="submit" {% if not filters.category or not filters.quiz_set %}disabled{% endif %}>Publish Quiz Set</button>
+        </form>
+      </section>
+
+      <section class="qbank-list-v26">
+        {% for q in rows %}
+          <article class="q-row-card status-card-{{ q.status }}">
+            <div class="q-row-image {{ q.image_layout }}">
+              {% for img in q.image_paths or [] %}<img src="{{ img }}" alt="question image">{% endfor %}
+              {% if not q.image_paths %}<div class="no-image">No image</div>{% endif %}
+            </div>
+            <div class="q-row-body">
+              <div class="q-row-top">
+                <div><span class="q-id">#{{ q.id }}</span><span class="q-meta">{{ q.question_type }} · {{ q.image_layout }}</span></div>
+                <span class="status-badge {{ q.status }}">{{ q.status }}</span>
+              </div>
+              <h3>{{ q.question_zh or q.question_en or q.question_es or 'Untitled question' }}</h3>
+              {% if q.question_en %}<p class="muted q-translation">{{ q.question_en }}</p>{% endif %}
+              <div class="answer-line"><b>Options:</b> {{ q.options }}</div>
+              <div class="answer-line"><b>Correct:</b> {{ q.correct_answers }}</div>
+              <div class="q-actions">
+                <a class="admin-btn small" href="{{ url_for('admin_question_preview', question_id=q.id) }}">Preview</a>
+                <a class="admin-btn small ghost" href="{{ url_for('admin_question_edit', question_id=q.id) }}">Edit</a>
+                <form method="post" action="{{ url_for('admin_question_set_status', question_id=q.id) }}">
+                  <input type="hidden" name="status" value="{% if q.status=='published' %}inactive{% else %}published{% endif %}">
+                  <button class="admin-btn small ghost" type="submit">{% if q.status=='published' %}Deactivate{% else %}Publish{% endif %}</button>
+                </form>
+              </div>
+            </div>
+          </article>
+        {% else %}
+          <section class="admin-card"><p class="empty">No questions found in this quiz set.</p></section>
+        {% endfor %}
+      </section>
+    </section>
+  </section>
+</main>
+</body>
+</html>

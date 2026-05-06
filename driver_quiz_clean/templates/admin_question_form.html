@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if mode=='new' %}New Question{% else %}Edit Question{% endif %}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+<main class="admin-shell qbank-shell">
+  <section class="admin-card qform-card">
+    <div class="section-title-row">
+      <div>
+        <h1>{% if mode=='new' %}New Draft Question{% else %}Edit Question #{{ q.id }}{% endif %}</h1>
+        <p class="muted">Questions save to PostgreSQL. New questions use the default POD question in all three languages. Draft questions stay hidden until published.</p>
+      </div>
+      <div class="admin-actions">
+        {% if mode=='edit' %}<a class="admin-btn ghost" href="{{ url_for('admin_question_preview', question_id=q.id) }}">Preview</a>{% endif %}
+        <a class="admin-btn ghost" href="{{ url_for('admin_questions') }}">Back</a>
+      </div>
+    </div>
+    {% if error %}<div class="admin-error">{{ error }}</div>{% endif %}
+    <form method="post" enctype="multipart/form-data" class="qform">
+      <div class="form-grid three">
+        <label>Category<input class="input" name="category_code" list="categoryList" value="{{ q.category_code or '' }}" required placeholder="existing or new category"><datalist id="categoryList">{% for code in categories %}<option value="{{ code }}">{% endfor %}</datalist><span class="field-hint">Type a new category code to create it.</span></label>
+        <label>Quiz set<input class="input" name="quiz_set" list="quizSetList" type="number" min="1" value="{{ q.quiz_set or 1 }}" required><datalist id="quizSetList">{% for n in quiz_sets %}<option value="{{ n }}">{% endfor %}</datalist><span class="field-hint">Use an existing quiz set or type a new number.</span></label>
+        <label>Type<select class="input" name="question_type"><option value="single" {% if q.question_type=='single' %}selected{% endif %}>single</option><option value="multi" {% if q.question_type=='multi' %}selected{% endif %}>multi</option></select></label>
+      </div>
+      <div class="form-grid three">
+        <label>Status<select class="input" name="status"><option value="draft" {% if q.status=='draft' or not q.status %}selected{% endif %}>draft</option><option value="published" {% if q.status=='published' %}selected{% endif %}>published</option><option value="inactive" {% if q.status=='inactive' %}selected{% endif %}>inactive</option></select></label>
+        <label>Image display on driver page<select class="input" name="image_layout"><option value="horizontal" {% if (q.image_layout or 'horizontal')=='horizontal' %}selected{% endif %}>Horizontal row</option><option value="vertical" {% if q.image_layout=='vertical' %}selected{% endif %}>Vertical stack</option></select><span class="field-hint">Use Vertical stack when the driver should see images one under another on phone.</span></label>
+        <div class="inline-note">Order is hidden because quiz questions are randomized.</div>
+      </div>
+      <label>Question 中文<input class="input" name="question_zh" value="{{ q.question_zh or '' }}" required></label>
+      <label>Question English<input class="input" name="question_en" value="{{ q.question_en or '' }}"></label>
+      <label>Question Español<input class="input" name="question_es" value="{{ q.question_es or '' }}"></label>
+      <label>Options, one per line<textarea class="input code-area" name="options" required>{{ q.options_text if q.options_text is defined else q.options or '√\n✗' }}</textarea><span class="field-hint">Simpler than JSON: put one option per line. Example: √ then ✗, or one error category per line.</span></label>
+      <label>Correct answer(s), one per line<textarea class="input code-area" name="correct_answers" required>{{ q.correct_answers_text if q.correct_answers_text is defined else q.correct_answers or '✗' }}</textarea><span class="field-hint">For single choice, put one answer. For multi choice, put each correct answer on its own line.</span></label>
+      <label>Feedback / Explanation<textarea class="input long-area" name="explanation">{{ q.explanation or '' }}</textarea></label>
+      {% if image_paths %}
+        <div class="image-admin-block">
+          <h3>Current images</h3>
+          <div class="image-admin-grid">{% for img in image_paths %}<div class="image-admin-item"><img src="{{ img }}"><label><input type="checkbox" name="remove_images" value="{{ img }}"> Remove</label></div>{% endfor %}</div>
+          <label class="checkbox-line"><input type="checkbox" name="replace_images" value="yes"> Replace all current images with uploaded images</label>
+        </div>
+      {% endif %}
+      <label>{% if mode=='new' %}Upload images{% else %}Add / replace images{% endif %}<input class="input" type="file" name="images" multiple accept="image/*"><span class="field-hint">Select images from Desktop or Downloads. Images save to server and driver page uses them.</span></label>
+      <div class="form-actions"><button class="admin-btn" type="submit">Save</button>{% if mode=='edit' %}<a class="admin-btn ghost" href="{{ url_for('admin_question_preview', question_id=q.id) }}">Preview</a>{% endif %}<a class="admin-btn ghost" href="{{ url_for('admin_questions') }}">Back</a></div>
+    </form>
+    {% if mode=='edit' %}<form method="post" action="{{ url_for('admin_question_delete', question_id=q.id) }}" onsubmit="return confirm('Delete this question? This cannot be undone.');" style="margin-top:14px"><button class="admin-btn danger" type="submit">Delete question</button></form>{% endif %}
+  </section>
+</main>
+</body>
+</html>

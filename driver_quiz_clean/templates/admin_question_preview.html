@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Question Preview</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+<main class="admin-shell preview-shell">
+  <header class="admin-header preview-header">
+    <div>
+      <h1>Question Preview</h1>
+      <p class="muted">This approximates how the driver page displays the question. Tap image to view full screen.</p>
+    </div>
+    <div class="admin-actions"><a class="admin-btn ghost" href="{{ url_for('admin_question_edit', question_id=q.id) }}">Edit</a><a class="admin-btn ghost" href="{{ url_for('admin_questions') }}">Back to Question Bank</a></div>
+  </header>
+  <section class="driver-preview-card">
+    <div class="preview-top"><b>Quiz #{{ q.quiz_set }}</b><span>{{ raw.category_code }} · {{ raw.status or 'published' }}</span></div>
+    <div class="preview-images {{ q.image_layout or 'horizontal' }}">{% for img in q.image_paths %}<img src="{{ img }}" onclick="openPreviewImage({{ loop.index0 }})">{% endfor %}</div>
+    <div class="tap-hint">Tap image to enlarge</div>
+    <h2>{{ q.question_zh or q.question_en or q.question_es }}</h2>
+    <div class="preview-options">{% for opt in q.options %}<div class="preview-option">{{ opt }}</div>{% endfor %}</div>
+    <div class="preview-answer"><b>Correct answers:</b> {{ q.correct_answers }}</div>
+    {% if q.explanation %}<div class="preview-feedback"><b>Feedback:</b><br>{{ q.explanation }}</div>{% endif %}
+  </section>
+</main>
+<div id="previewLightbox" class="preview-lightbox" onclick="closePreviewImage()">
+  <button type="button" class="preview-close" onclick="closePreviewImage();event.stopPropagation();">×</button>
+  <button type="button" class="preview-nav preview-prev" onclick="stepPreviewImage(-1);event.stopPropagation();">‹</button>
+  <img id="previewLightboxImg" onclick="event.stopPropagation();">
+  <button type="button" class="preview-nav preview-next" onclick="stepPreviewImage(1);event.stopPropagation();">›</button>
+  <div id="previewCount" class="preview-count"></div>
+</div>
+<script>
+const previewImages = {{ q.image_paths|tojson }};
+let previewIndex = 0;
+let previewTouchX = 0;
+function openPreviewImage(index){previewIndex=index||0;updatePreviewImage();document.getElementById('previewLightbox').classList.add('show');}
+function updatePreviewImage(){if(!previewImages.length)return;document.getElementById('previewLightboxImg').src=previewImages[previewIndex];document.getElementById('previewCount').textContent=(previewIndex+1)+' / '+previewImages.length;document.querySelector('.preview-prev').style.display=previewImages.length>1?'grid':'none';document.querySelector('.preview-next').style.display=previewImages.length>1?'grid':'none';}
+function stepPreviewImage(delta){if(!previewImages.length)return;previewIndex=(previewIndex+delta+previewImages.length)%previewImages.length;updatePreviewImage();}
+function closePreviewImage(){document.getElementById('previewLightbox').classList.remove('show');}
+document.getElementById('previewLightbox').addEventListener('touchstart',e=>{previewTouchX=e.touches[0].clientX},{passive:true});
+document.getElementById('previewLightbox').addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-previewTouchX;if(Math.abs(dx)>45)stepPreviewImage(dx<0?1:-1)},{passive:true});
+document.addEventListener('keydown',e=>{const lb=document.getElementById('previewLightbox');if(!lb.classList.contains('show'))return;if(e.key==='ArrowLeft')stepPreviewImage(-1);if(e.key==='ArrowRight')stepPreviewImage(1);if(e.key==='Escape')closePreviewImage();});
+</script>
+</body>
+</html>

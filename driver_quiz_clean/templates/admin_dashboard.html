@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>POD Operations Dashboard</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+<main class="admin-shell wide">
+  <header class="admin-header">
+    <div>
+      <h1>POD Operations Dashboard</h1>
+      
+    </div>
+    <div class="admin-actions">
+      <a class="admin-btn" href="/admin/assignments/new">+ New Assignment</a>
+      <a class="admin-btn ghost" href="/admin/questions">Question Bank</a>
+      <a class="admin-btn ghost" href="/">Driver App</a>
+      <a class="admin-btn ghost" href="/admin/logout">Logout</a>
+    </div>
+  </header>
+
+  <section class="stat-grid">
+    <div class="stat"><b>{{ stats.total or 0 }}</b><span>Assignments</span></div>
+    <div class="stat"><b>{{ stats.completed or 0 }}</b><span>Completed</span></div>
+    <div class="stat"><b>{{ stats.pending or 0 }}</b><span>Pending</span></div>
+    <div class="stat"><b>{{ stats.in_progress or 0 }}</b><span>In progress</span></div>
+    <div class="stat warning strong-warning"><b>{{ stats.warnings or attempt_stats.warning_results or 0 }}</b><span>Warnings</span></div>
+  </section>
+
+  <section class="stat-grid results-stat">
+    <div class="stat"><b>{{ attempt_stats.total_submissions or 0 }}</b><span>Submissions</span></div>
+    <div class="stat"><b>{{ attempt_stats.drivers or 0 }}</b><span>Drivers</span></div>
+    <div class="stat"><b>{{ attempt_stats.passed_count or 0 }}</b><span>Passed</span></div>
+    <div class="stat"><b>{{ attempt_stats.failed_count or 0 }}</b><span>Not passed</span></div>
+    <div class="stat warning"><b>{{ attempt_stats.warning_results or 0 }}</b><span>Warning results</span></div>
+  </section>
+
+  <section class="admin-card">
+    <form class="filter-grid stage20-filter" method="get">
+      <label>Creator<input class="input" name="creator" value="{{filters.creator}}" placeholder=""></label>
+      <label>Warehouse<select class="input" name="warehouse"><option value="">All</option>{% for w in warehouses %}<option value="{{w}}" {% if filters.warehouse==w %}selected{% endif %}>{{w}}</option>{% endfor %}</select></label>
+      <label>Team ID<select class="input" name="team_id"><option value="">All</option>{% for t in teams %}<option value="{{t}}" {% if filters.team_id==t %}selected{% endif %}>{{t}}</option>{% endfor %}</select></label>
+      <label>Category<select class="input" name="category"><option value="">All</option>{% for code, names in labels.items() %}<option value="{{code}}" {% if filters.category==code %}selected{% endif %}>{{ names.en }}</option>{% endfor %}</select></label>
+      <label>Status<select class="input" name="status"><option value="">All</option><option value="unfinished" {% if filters.status=='unfinished' %}selected{% endif %}>Unfinished</option>{% for st in ['pending','in_progress','completed'] %}<option value="{{st}}" {% if filters.status==st %}selected{% endif %}>{{st}}</option>{% endfor %}</select></label>
+      <label>Date from<input class="input" type="date" name="date_from" value="{{filters.date_from}}"></label>
+      <label>Date to<input class="input" type="date" name="date_to" value="{{filters.date_to}}"></label>
+      <button class="admin-btn filter-btn" type="submit">Filter</button>
+      <a class="admin-btn ghost filter-btn" href="/admin/dashboard">Reset</a>
+    </form>
+  </section>
+
+  <section class="admin-card table-card">
+    <div class="section-title-row">
+      <div><h2>Assignments</h2></div>
+
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Driver ID</th><th>Creator</th><th>Warehouse</th><th>Team ID</th><th>Category</th><th>Status</th><th>Attempts</th><th>Warning</th><th>Created</th><th>Last Attempt</th><th>Completed</th><th>Note</th></tr></thead>
+        <tbody>
+        {% for a in assignments %}
+          <tr class="status-{{a.status}} {% if a.warning %}row-warning{% endif %}">
+            <td class="driver-id-cell">{{a.driver_id}}</td>
+            <td>{{a.created_by or ''}}</td>
+            <td>{{a.warehouse}}</td>
+            <td>{{a.team_id}}</td>
+            <td>{{ labels.get(a.category_code, {}).get('en', a.category_code) }}</td>
+            <td><span class="pill">{{a.status}}</span></td>
+            <td>{{a.attempt_count}}</td>
+            <td>{% if a.warning %}<span class="warning-badge big-warning">WARNING</span>{% else %}NO{% endif %}</td>
+            <td>{{a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else ''}}</td>
+            <td>{{a.last_attempt_at.strftime('%Y-%m-%d %H:%M') if a.last_attempt_at else ''}}</td>
+            <td>{{a.completed_at.strftime('%Y-%m-%d %H:%M') if a.completed_at else ''}}</td>
+            <td>{{a.note or ''}}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="12" class="empty">No assignments found.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="admin-card table-card">
+    <div class="section-title-row">
+      <div><h2>All Test Results</h2><p class="muted">Every submitted driver test, including tests that were not linked to an assignment.</p></div>
+      <div class="copy-tools">
+        <button class="admin-btn ghost" type="button" onclick="selectVisibleResults()">Select visible</button>
+        <button class="admin-btn ghost" type="button" onclick="clearSelectedResults()">Clear</button>
+        <button class="admin-btn" type="button" onclick="copySelectedResultDrivers()">Copy selected driver IDs</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Select</th><th>Driver ID</th><th>Warehouse</th><th>Team ID</th><th>Category</th><th>Reason</th><th>Quiz</th><th>Score</th><th>Passed</th><th>Warning Count</th><th>Assignment</th><th>Submitted</th></tr></thead>
+        <tbody>
+        {% for r in attempts %}
+          <tr class="{% if r.warning_count and r.warning_count >= 3 %}row-warning{% endif %}">
+            <td><input type="checkbox" class="result-driver-check" value="{{r.driver_id}}"></td><td class="driver-id-cell">{{r.driver_id}}</td><td>{{r.warehouse}}</td><td>{{r.team_id}}</td><td>{{ labels.get(r.category_code, {}).get('en', r.category_code) }}</td><td>{{r.trigger_reason or ''}}</td><td>{% if r.is_random %}Random{% else %}Quiz #{{r.quiz_set or r.stage}}{% endif %}</td><td>{{r.score}} / {{r.total}}</td><td>{% if r.passed %}<span class="pass-badge">YES</span>{% else %}<span class="fail-badge">NO</span>{% endif %}</td><td>{% if r.warning_count and r.warning_count >= 3 %}<span class="warning-badge big-warning">{{r.warning_count}}</span>{% else %}{{r.warning_count or 0}}{% endif %}</td><td>{{r.assignment_id or 'Not linked'}}</td><td>{{r.submitted_at.strftime('%Y-%m-%d %H:%M') if r.submitted_at else ''}}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="12" class="empty">No test results found.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<script>
+function selectVisibleResults(){
+  document.querySelectorAll('.result-driver-check').forEach(x=>x.checked=true);
+}
+function clearSelectedResults(){
+  document.querySelectorAll('.result-driver-check').forEach(x=>x.checked=false);
+}
+function fallbackCopyText(text){
+  const box=document.createElement('textarea');
+  box.value=text;
+  box.setAttribute('readonly','');
+  box.style.position='fixed';
+  box.style.left='-9999px';
+  box.style.top='0';
+  document.body.appendChild(box);
+  box.focus();
+  box.select();
+  let ok=false;
+  try{ok=document.execCommand('copy');}catch(e){ok=false;}
+  document.body.removeChild(box);
+  return ok;
+}
+async function copySelectedResultDrivers(){
+  const ids=[...new Set(Array.from(document.querySelectorAll('.result-driver-check:checked')).map(x=>x.value).filter(Boolean))];
+  if(!ids.length){alert('No drivers selected.');return;}
+  const text=ids.join('\n');
+  let copied=false;
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+      copied=true;
+    }
+  }catch(e){copied=false;}
+  if(!copied){copied=fallbackCopyText(text);}
+  if(copied){
+    alert('Copied '+ids.length+' driver ID(s).');
+  }else{
+    alert('Copy failed. Please select and copy manually: '+text);
+  }
+}
+</script>
+</body>
+</html>
